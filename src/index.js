@@ -1,9 +1,16 @@
 // src/index.js
 require('dotenv').config();
+const readline = require('readline'); // Import modul readline
 
 const { scrapeGoogleResults } = require('./scraper/googleScraper');
 const { scrapeContent } = require('./scraper/contentScraper');
 const { summarizeHeadings, suggestMetaDescription, analyzeFullTextForSubtopics, generateContentDraft } = require('./utils/textProcessor');
+
+// Buat interface readline
+const rl = readline.createInterface({
+    input: process.stdin,
+    output: process.stdout
+});
 
 async function runOptimizer(keyword) {
     console.log(`\n--- Memulai Optimasi Konten untuk Keyword: "${keyword}" ---\n`);
@@ -12,7 +19,7 @@ async function runOptimizer(keyword) {
     const googleResults = await scrapeGoogleResults(keyword, 1);
 
     if (googleResults.length === 0) {
-        console.log('Tidak ada hasil Google yang ditemukan atau diblokir.');
+        console.log('Tidak ada hasil Google yang ditemukan atau diblokir. Coba lagi dengan keyword lain atau cek koneksi/API Key.');
         return;
     }
 
@@ -61,25 +68,33 @@ async function runOptimizer(keyword) {
         const suggestedSubtopics = analyzeFullTextForSubtopics(competitorFullTexts);
         console(`**Saran Subtopik Utama (dari isi artikel):** ${suggestedSubtopics}`);
 
-        // --- TAMBAHAN BARU: Generasi Draf Teks Awal ---
         console('\n--- Draf Teks Awal (Oleh Gemini) ---');
         const promptForIntro = `Tuliskan 2 paragraf pengantar singkat dan menarik tentang "${keyword}" untuk sebuah artikel blog yang informatif. Sertakan kalimat pembuka yang kuat dan perkenalan singkat tentang apa yang akan dibahas dalam artikel. Keywords: ${suggestedSubtopics}.`;
         const introDraft = await generateContentDraft(promptForIntro);
         console(introDraft);
         console('\n*Catatan: Draf ini perlu diedit, diperiksa fakta, dan diperkaya oleh manusia.*\n');
-        // --- AKHIR TAMBAHAN BARU ---
 
     } else {
         console('\nTidak cukup teks lengkap dari kompetitor untuk analisis subtopik atau generasi draf.');
     }
 
     console('\n--- Optimasi Selesai! ---\n');
+    rl.close(); // Tutup interface readline setelah selesai
 }
 
-const targetKeyword = process.argv[2];
-if (!targetKeyword) {
-    console.log('Penggunaan: node src/index.js "kata kunci target Anda"');
-    console.log('Contoh: node src/index.js "manfaat kopi untuk kesehatan"');
-} else {
-    runOptimizer(targetKeyword);
-}
+// Interaksi Selamat Datang dan Input Keyword
+console.log('##############################################');
+console.log('#                                            #');
+console.log('#          Selamat Datang di XseO !          #');
+console.log('#                                            #');
+console.log('##############################################');
+console.log('\n');
+
+rl.question('Silahkan masukkan kata kunci: ', (keyword) => {
+    if (keyword.trim() === '') {
+        console.log('Kata kunci tidak boleh kosong. Silahkan coba lagi.');
+        rl.close();
+    } else {
+        runOptimizer(keyword.trim());
+    }
+});
